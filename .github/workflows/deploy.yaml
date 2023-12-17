@@ -1,0 +1,47 @@
+#Remember to change your application_name, environment_name, 
+#existing_bucket_name, and region to the values used by your AWS 
+#Elastic Beanstalk
+
+#Remember to check your default branch to see if it is 
+#main or master and update the branches field accordingly.
+
+name: Deploy MultiDocker
+on:
+  push:
+    branches:
+      - master
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+      - run: docker build -t cynelax22/react-test -f ./client/Dockerfile.dev ./client
+      - run: docker run -e CI=true cynelax22/react-test npm test
+
+
+      -run: docker build -t cynelax22/multi-client-10-14 ./client
+      -run: docker build -t cynelax22/multi-nginx-10-14 ./nginx
+      -run: docker build -t cynelax22/multi-server-10-14 ./server
+      -run: docker build -t cynelax22/multi-worker-10-14 ./worker
+
+
+      -run: docker push cynelax22/multi-client-10-14
+      -run: docker push cynelax22/multi-nginx-10-14
+      -run: docker push cynelax22/multi-server-10-14
+      -run: docker push cynelax22/multi-worker-10-14
+
+      - name: Generate deployment package
+        run: zip -r deploy.zip . -x '*.git*'
+
+      - name: Deploy to EB
+        uses: einaregilsson/beanstalk-deploy@v18
+        with:
+          aws_access_key: ${{ secrets.AWS_ACCESS_KEY }}
+          aws_secret_key: ${{ secrets.AWS_SECRET_KEY }}
+          application_name: docker-react
+          environment_name: Docker-react-env
+          existing_bucket_name: elasticbeanstalk-us-east-1-422280883745
+          region: us-east-1
+          version_label: ${{ github.sha }}
+          deployment_package: deploy.zip
