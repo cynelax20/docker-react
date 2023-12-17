@@ -14,6 +14,7 @@ RUN npm run build
 #/app/build will have all the stuff necessary for the run phase
 
 FROM nginx
+EXPOSE 80
 COPY --from=builder /home/node/app/build /usr/share/nginx/html
 
 #nginx image starts by default so don't need command
